@@ -29,9 +29,7 @@ public class MonsterController : MonoBehaviour {
     if (playerController == null) {
       playerController = GameObject.FindWithTag("Player").GetComponent<PlayerController>();
     }
-    if (gameController == null) {
-      gameController = GameObject.FindWithTag("GameController").GetComponent<GameController>();
-    }
+    gameController = GameController.GetSingletonInstance();
 
     thinking = false;
     pathWayPointInd = 0;

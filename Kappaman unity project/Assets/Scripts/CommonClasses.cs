@@ -5,7 +5,8 @@ using System.Collections;
 public class CellStruct {
   public bool top, right; // true if passage is possible, false if not -- wall.
   public bool reachable; // can this cell be reached by the player at all
-  public CellStruct(bool _t, bool _r) {top = _t; right = _r; reachable = false;}
+  public int deadness;
+  public CellStruct(bool _t, bool _r) {top = _t; right = _r; reachable = false; deadness = -1;}
 }
 
 public class LabyrinthLayout {

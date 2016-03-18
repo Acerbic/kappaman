@@ -42,26 +42,22 @@ public class LabyrinthController : MonoBehaviour {
   public AwaySpawnerController spawner;
 
   void Awake () {
-  	GameController gc = GameController.GetSingletonInstance();
-  	if (gc) {
-  		spawner.monstersNumber = gc.difficultyLevel;
-  	}
+    // calling it here, because monster array allocation
+    // happens in Start() call of the spawner
+  	SetDifficulty();
   }
 
 	// Use this for initialization
 	void Start () {
+
+    // BAD SEED: diff = 3, seed = 673964776
+
 		if (randomSeed == 0) {
 			randomSeed = (new System.Random()).Next();
 		}
 		rnd = new System.Random(randomSeed);
 
-		GameController gc = GameController.GetSingletonInstance();
-		width = 5 + gc.difficultyLevel * 5;
-		height = 5 + gc.difficultyLevel * 3;
-		cookieToPillRatio = 10 + 2 * gc.difficultyLevel;
-
-		// if (width == 0) { width = 20; }
-		// if (height == 0) { height = 20; }
+		// GameController gc = GameController.GetSingletonInstance();
 
 		// GenerateLabyrinthLoops(20, 20);
 		// GenerateLabyrinthRandom(20, 20);
@@ -79,6 +75,17 @@ public class LabyrinthController : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 	}
+
+  void SetDifficulty () {
+    GameController gc = GameController.GetSingletonInstance();
+    if (gc) {
+      spawner.monstersNumber = Mathf.CeilToInt((float)gc.difficultyLevel / 2);
+      width = 5 + gc.difficultyLevel * 5;
+      height = 5 + gc.difficultyLevel * 3;
+      cookieToPillRatio = 10 + 2 * gc.difficultyLevel;
+    }
+  }
+
 
 	/**
 	 * Check if passage is possible in labyrinth. Target must be ajacend to position (4 directions).
@@ -260,13 +267,19 @@ public class LabyrinthController : MonoBehaviour {
 	 */
 	public void GenerateLabyrinthCrosses (int width, int height) {
 
-		// int top_dimention = System.Math.Max(width, height);
-		// int cells_count = (width-1) * (height-1);
-
 		layout = new LabyrinthLayout(width, height); 
-		// player position
-		playerSpawnX = rnd.Next(1, width);
-		playerSpawnY = rnd.Next(1, height);
+
+    // player position
+    if (width >= 7) {
+      playerSpawnX = rnd.Next(4, width-2);
+    } else {
+      playerSpawnX = rnd.Next(1, width+1);
+    }
+    if (height >= 7) {
+      playerSpawnY = rnd.Next(4, height-2);
+    } else {
+      playerSpawnY = rnd.Next(1, height+1);
+    }
 
 		Crucify(playerSpawnX, playerSpawnY);
 
@@ -279,8 +292,46 @@ public class LabyrinthController : MonoBehaviour {
 	}
 
 
+  private int GetNodeConnectionsCount(GraphNode n) {
+    int connections_count = 0;
+    n.GetConnections((GraphNode node) => {connections_count++;});
+    return connections_count;
+  }
+
+  private int CalculateDeadEndDepth(GraphNode n) {
+    int depth = -1;
+
+    GraphNode last = null;
+    int last_connections_count = 1;
+
+    int current_connections_count;
+    GraphNode next_node;
+
+    while (n != null && last_connections_count <= 2) {
+      depth++;
+
+      // count connections from this
+      current_connections_count = 0;
+      next_node = null;
+
+      n.GetConnections((GraphNode node) => {
+        current_connections_count++;
+        if (node != last) {
+          next_node = node;
+        }
+      });
+
+      last = n;
+      n = next_node;
+      last_connections_count = current_connections_count;
+    }
+    return depth;
+  }
+
+
 	/**
 	 * Create a AStar node graph and pathing trough generated labyrinth.
+   * Detect dead ends. 
 	 */
 	private void MapLabyrinthPathings () {
     lg = AstarPath.active.astarData.AddGraph(typeof(LabyrinthGraph)) as LabyrinthGraph;
@@ -299,6 +350,11 @@ public class LabyrinthController : MonoBehaviour {
 			int j = Mathf.RoundToInt(position.y);
 
 			layout[i, j].reachable = true;
+
+      // detect dead ends
+      if (GetNodeConnectionsCount(n) == 1) {
+        layout[i, j].deadness = CalculateDeadEndDepth(n);
+      }
 		}
 	}
 
@@ -398,6 +454,7 @@ public class LabyrinthController : MonoBehaviour {
 				}
 			}
 		}
+
 		// Add Labyrinth children: tiles, items, ...
 		for (int i = 0; i <= height; i++) {
 			for (int j = 0; j <= width; j++) {
@@ -419,7 +476,7 @@ public class LabyrinthController : MonoBehaviour {
 				// put items - cookies and pills
 				if (layout[j, i].reachable && !(j == playerSpawnX && i == playerSpawnY)) {
 					Vector3 position = new Vector3(j, i, 0);
-					if (rnd.Next(1, cookieToPillRatio) == 1) {
+					if (layout[j, i].deadness >= 4 || rnd.Next(1, cookieToPillRatio) == 1) {
 						// drop a pill
 						o = Instantiate(pill_template, position, Quaternion.identity) as GameObject;
 						pillCount++;
