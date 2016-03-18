@@ -8,9 +8,11 @@ public class SoundEventsController : MonoBehaviour {
   public float[] killSoundsVolumes;
   public AudioClip crunchySound;
 
+  private AudioSource audioSource;
+
 	// Use this for initialization
 	void Start () {
-	
+    audioSource = GetComponent<AudioSource>();
 	}
 	
 	// Update is called once per frame
@@ -18,21 +20,26 @@ public class SoundEventsController : MonoBehaviour {
 	
 	}
 
+  /**
+   * Broadcasted game status event - see GameController
+   */
   public
-  void RandomDeathSound () {
+  void GameEnd () {
     int dead_index = (new System.Random()).Next(0, deadSounds.GetLength(0));
-    GetComponent<AudioSource>().PlayOneShot(deadSounds[dead_index], 1.1f);
+    audioSource.PlayOneShot(deadSounds[dead_index], 1.1f);
   }
 
+  /**
+   * Broadcasted game status event - see GameController
+   */
   public
-  void RandomKillSound () {
+  void GameEatMonster () {
     int kill_index = (new System.Random()).Next(0, killSounds.GetLength(0));
-    GetComponent<AudioSource>().PlayOneShot(killSounds[kill_index], killSoundsVolumes[kill_index]);
-    // GetComponent<AudioSource>().PlayOneShot(killSounds[kill_index], 2.3f);
+    audioSource.PlayOneShot(killSounds[kill_index], killSoundsVolumes[kill_index]);
   }
 
   public
-  void OmNomNom () {
-    GetComponent<AudioSource>().PlayOneShot(crunchySound, 0.3f);
+  void GameEatCookie () {
+    audioSource.PlayOneShot(crunchySound, 0.3f);
   }
 }

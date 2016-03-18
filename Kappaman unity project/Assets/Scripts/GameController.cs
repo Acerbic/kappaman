@@ -4,14 +4,24 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Audio;
 using System.Collections;
 
+/**
+ * Controls the game - loads levels, count points, etc..
+ *
+ * Broadcasts events (method GameObject.BroadcastMessage):
+ *
+ * GameEatMonster - player destroys a monster
+ * GameEatCookie - player collects a cookie
+ * GameEnd - game is lost
+ * GameNewLevel - new level is loaded (start of the game or going to the next level)
+ * GameVictory - game level is finished
+ * GameKappaPride - player picked up a power up
+ * GameDefault - power up(s) is/are expired
+ */
+
 public class GameController : MonoBehaviour {
 
   // singleton pattern
   private static GameController instanceRef;
-
-  public AudioSource kappaMusic;
-  public AudioSource prideMusic;
-  public AudioSource winMusic;
 
   // Game elements
   public PlayerController player;
@@ -26,19 +36,6 @@ public class GameController : MonoBehaviour {
   private Text collectedText;
   private Image backdrop;
   private ScrollRect creditsScroll;
-  private Button musicVolumeControlButton;
-  private Button effectsVolumeControlButton;
-
-
-  // Sound volume stuff
-  public AudioMixer mixer;
-  public float[] musicVolumeLevels;
-  public float[] effectsVolumeLevels;
-  public Sprite[] musicVolumeIcons;
-  public Sprite[] effectsVolumeIcons;
-  private int musicVolumeIndex = 0;
-  private int effectsVolumeIndex = 0;
-  // private float masterVolume;
 
   public bool gameOver;
   public bool restart;
@@ -125,12 +122,12 @@ public class GameController : MonoBehaviour {
     creditsScroll.gameObject.SetActive(false);
 
     // Connection to UI volume control buttons
-    musicVolumeControlButton = GameObject.Find("Music Volume button").GetComponent<Button>();;
-    effectsVolumeControlButton = GameObject.Find("Effects Volume button").GetComponent<Button>();;
-    musicVolumeControlButton.image.overrideSprite = musicVolumeIcons[musicVolumeIndex];
-    musicVolumeControlButton.onClick.AddListener(OnMusicVolumeButton);
-    effectsVolumeControlButton.image.overrideSprite = effectsVolumeIcons[effectsVolumeIndex];
-    effectsVolumeControlButton.onClick.AddListener(OnEffectsVolumeButton);
+    // musicVolumeControlButton = GameObject.Find("Music Volume button").GetComponent<Button>();;
+    // effectsVolumeControlButton = GameObject.Find("Effects Volume button").GetComponent<Button>();;
+    // musicVolumeControlButton.image.overrideSprite = musicVolumeIcons[musicVolumeIndex];
+    // musicVolumeControlButton.onClick.AddListener(OnMusicVolumeButton);
+    // effectsVolumeControlButton.image.overrideSprite = effectsVolumeIcons[effectsVolumeIndex];
+    // effectsVolumeControlButton.onClick.AddListener(OnEffectsVolumeButton);
 
     // Initializing
     if (score < 0) {
@@ -142,9 +139,8 @@ public class GameController : MonoBehaviour {
     gameLost = false;
     dirtyUI = true;
 
-    winMusic.Stop();
-    prideMusic.Stop();
-    kappaMusic.Play();
+    BroadcastMessage("GameNewLevel", null, SendMessageOptions.DontRequireReceiver);
+    // musicBox.SwitchNewLevel();
   }
 
 	// Use this for initialization
@@ -195,6 +191,24 @@ public class GameController : MonoBehaviour {
 	}
 
   /**
+   * Called when player destroys a monster
+   *
+   * @param float points - amount of points value for the monster
+   */
+  public
+  void EatMonster (int points) {
+    Score += points;
+    BroadcastMessage("GameEatMonster", null, SendMessageOptions.DontRequireReceiver);
+  }
+
+  public
+  void EatCookie (int points) {
+    Score += points;
+    CookiesCollected++;
+    BroadcastMessage("GameEatCookie", null, SendMessageOptions.DontRequireReceiver);
+  }
+
+  /**
    * Show game over screen. 
    */
   public
@@ -213,14 +227,7 @@ public class GameController : MonoBehaviour {
     creditsScroll.gameObject.SetActive(true);
     creditsScroll.normalizedPosition = new Vector2(0, 1);
 
-    // Disable huff-puff of monsters.
-    GameObject[] monsters = GameObject.FindGameObjectsWithTag("Monster");
-    foreach (GameObject g in monsters) {
-      AudioSource a_s = g.GetComponent<AudioSource>();
-      if (a_s) {
-        a_s.Stop();
-      }
-    }
+    BroadcastMessage("GameEnd", null, SendMessageOptions.DontRequireReceiver);
   }
 
   /**
@@ -238,38 +245,16 @@ public class GameController : MonoBehaviour {
     continueText.enabled = true;
     restart = true;
 
-    winMusic.Play();
-    kappaMusic.Stop();
-    prideMusic.Stop();
+    BroadcastMessage("GameVictory", null, SendMessageOptions.DontRequireReceiver);
   }
 
   public
   void GoParade () {
-    if (! prideMusic.isPlaying) {
-      prideMusic.Play();
-    }
-    kappaMusic.Pause();
+    BroadcastMessage("GameKappaPride", null, SendMessageOptions.DontRequireReceiver);
   }
 
   public
   void StopParade () {
-    prideMusic.Pause();
-    kappaMusic.Play();
-  }
-
-  public
-  void OnMusicVolumeButton () {
-    musicVolumeIndex = (musicVolumeIndex + 1) % musicVolumeLevels.Length;
-    mixer.SetFloat("Music volume", musicVolumeLevels[musicVolumeIndex]);
-
-    musicVolumeControlButton.image.overrideSprite = musicVolumeIcons[musicVolumeIndex];
-  }
-
-  public
-  void OnEffectsVolumeButton () {
-    effectsVolumeIndex = (effectsVolumeIndex + 1) % effectsVolumeLevels.Length;
-    mixer.SetFloat("Effects volume", effectsVolumeLevels[effectsVolumeIndex]);
-
-    effectsVolumeControlButton.image.overrideSprite = effectsVolumeIcons[effectsVolumeIndex];
+    BroadcastMessage("GameKappaDefault", null, SendMessageOptions.DontRequireReceiver);
   }
 }

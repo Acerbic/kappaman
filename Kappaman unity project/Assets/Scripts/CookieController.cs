@@ -3,7 +3,6 @@ using System.Collections;
 
 public class CookieController : MonoBehaviour {
   public PlayerController playerController;
-  public SoundEventsController soundPlayer;
   public int cookiePointsWorth = 1;
 
   // Use this for initialization
@@ -18,24 +17,18 @@ public class CookieController : MonoBehaviour {
 	
 	}
 
-  void Hide() {
-    GetComponent<SpriteRenderer>().enabled = false;
-    GetComponent<CircleCollider2D>().enabled = false;
-  }
-
   void OnTriggerEnter2D(Collider2D other) {
     if (other.CompareTag("Player")) {
+      // inform the player
       playerController.CollectCookie();
-      soundPlayer.OmNomNom();
 
-      // Hide();
-      // GameObject.Destroy(gameObject, 5);
-      GameObject.Destroy(gameObject);
-
+      // inform the game controller
       GameObject g = GameObject.FindWithTag("GameController");
       GameController gc = g.GetComponent<GameController>();
-      gc.Score += cookiePointsWorth;
-      gc.CookiesCollected++;
+      gc.EatCookie(cookiePointsWorth);
+
+      // destroy this object
+      GameObject.Destroy(gameObject);
     }
   }
 }

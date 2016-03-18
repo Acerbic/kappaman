@@ -5,6 +5,8 @@ using Pathfinding;
 
 public class MonsterController : MonoBehaviour {
 
+  public GameController gameController;
+
   // reference to the player object
   public PlayerController playerController;
   // Game Mechanic : movement speed in units / sec
@@ -12,8 +14,6 @@ public class MonsterController : MonoBehaviour {
 
   // how close to the waypoint must monster be to switch to the next one
   private const float WAYPOINT_PROXIMITY_REACTION = 0.05f;
-  // path exists
-  // private bool pathed;
   // path is being calculated right now
   private bool thinking;
   // waypoint on the current path we are moving towards
@@ -28,6 +28,9 @@ public class MonsterController : MonoBehaviour {
 	void Start () {
     if (playerController == null) {
       playerController = GameObject.FindWithTag("Player").GetComponent<PlayerController>();
+    }
+    if (gameController == null) {
+      gameController = GameObject.FindWithTag("GameController").GetComponent<GameController>();
     }
 
     thinking = false;
@@ -188,8 +191,7 @@ public class MonsterController : MonoBehaviour {
    */
   public
   void DieKappa() {
-    GameObject g = GameObject.FindWithTag("GameController");
-    g.GetComponent<GameController>().Score += monsterPointsWorth;
+    gameController.EatMonster(monsterPointsWorth);
 
     GameObject.Destroy(gameObject);
   }

@@ -302,14 +302,12 @@ public class PlayerController : MonoBehaviour {
 	void HitByMonster(MonsterController monster) {
 		if (pride) {
 			monster.DieKappa();
-			audioSourceEvents.GetComponent<SoundEventsController>().RandomKillSound();
 
 		} else {
 			GameController gc = GameObject.FindWithTag("GameController").GetComponent<GameController>();
 			if (!gc.gameOver) {
 				gc.EndGame();
 				audioSourcePersistent.Stop();
-				audioSourceEvents.GetComponent<SoundEventsController>().RandomDeathSound();
 			}
 		}
 	}
