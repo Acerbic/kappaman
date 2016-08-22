@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 // stores passability from this cell to the neighbouring ones
 public class CellStruct {
@@ -82,7 +83,6 @@ public class LabyrinthLayout {
     }
   }
 
-
   /**
    * Flips LabyrinthLayout array by diagonal (0,0) to (n, n)
    *
@@ -153,5 +153,143 @@ public class LabyrinthLayout {
     }
 
     return t;
+  }
+
+  /**
+   * Open all inner walls
+   */
+  public void OpenInnerWalls () {
+
+    int size_x = cells.GetLength(0);
+    int size_y = cells.GetLength(1);
+
+    for (int i = 1; i < size_x -1; i++) {
+      int j;
+      for (j = 1; j < size_y -1; j++) {
+        cells[i, j].right = true;
+        cells[i, j].top = true;
+      }
+      cells[i, j].right = true;
+    }
+
+    for (int j = 1; j < size_y -1; j++) {
+      cells[size_x -1, j].top = true;
+    }
+  }
+
+  /**
+   * Count a number of walls "touching" a wall joint
+   * 
+   * @param int  x   coordinate of a Cell bottom left to the joint we check
+   * @param int  y   coordinate of a Cell bottom left to the joint we check
+   *
+   * @return int     number of walls connected to the joint - 
+   *                   0 .. 4; 
+   *                   -1 for (x,y) being out of bounds
+   */
+  public int CountWallsConnectedToJoint (int x, int y) {
+    int size_x = cells.GetLength(0);
+    int size_y = cells.GetLength(1);
+
+    if (x < 0 || x >= size_x || y < 0 || y >= size_y) {return -1;}
+
+    int count = 0;
+
+    if (!cells[x, y].top) {count++;}
+    if (!cells[x, y].right) {count++;}
+
+    if ((x < (size_x -1)) && !cells[x+1, y].top) {count++;}
+    if ((y < (size_y -1)) && !cells[x, y+1].right) {count++;}
+
+    return count;
+    /**
+      0,2     1,2     2,2     3,2
+                          [*]
+      0,1     1,1     2,1     3,1
+      
+      0,0     1,0     2,0     3,0 size = 4
+     */
+  }
+}
+
+public class Snakewallhead {
+
+  class Wall {
+    public int x, y; // coords of a cell this wall belongs to 
+    public bool top; // true if the wall is top wall of the cell, false - right wall
+    public bool nextCell; // flag to remember if head moves to a cell neighbouring a wall cell
+    public Wall (int _x, int _y, bool _t, bool _n) {x = _x; y = _y; top = _t; nextCell = _n;}
+  }
+
+  public int x, y;
+  private LabyrinthLayout l;
+
+  public Snakewallhead (int _x, int _y, LabyrinthLayout _l) {x = _x; y = _y; l = _l;}
+
+  /**
+   * Grow the wall one step
+   *
+   * @return bool - success of operation, true if wall grown, false if not
+   */
+  public bool Grow (System.Random rnd) {
+    if (l.CountWallsConnectedToJoint(x,y) > 1) {
+      // preventing T-juncture
+      return false;
+    }
+
+    List<Wall> walls = new List<Wall>(3);
+
+    // check all walls from this joint:
+
+    // West
+    if (l.CountWallsConnectedToJoint(x-1, y) == 0) {
+      walls.Add( new Wall(x, y, true, true) );
+    }
+
+    // North
+    if (l.CountWallsConnectedToJoint(x, y+1) == 0) {
+      walls.Add( new Wall(x, y+1, false, false) );
+    }
+
+    // East
+    if (l.CountWallsConnectedToJoint(x+1, y) == 0) {
+      walls.Add( new Wall(x+1, y, true, false) );
+    }
+
+    // South
+    if (l.CountWallsConnectedToJoint(x, y-1) == 0) {
+      walls.Add( new Wall(x, y, false, true) );
+    }
+
+    // choose a path to grow
+    if (walls.Count == 0) {return false;}
+    Wall growTo = walls[rnd.Next(0, walls.Count)];
+
+    // advance this head to a new position
+    if (growTo.top) {
+      // growTo.x -= (growTo.nextCell ? 1 : 0);
+      l[growTo.x, growTo.y].top = false;
+    } else {
+      // growTo.y -= (growTo.nextCell ? 1 : 0);
+      l[growTo.x, growTo.y].right = false;
+    }
+
+    x = growTo.x + (growTo.nextCell && growTo.top ? -1 : 0);
+    y = growTo.y + (growTo.nextCell && !growTo.top ? -1 : 0);
+
+    return true;
+  }
+
+
+  /**
+   * Automaticall extend this Snakewall to maximum
+   * @param System.Random rnd  - system random generator
+   */
+  public void AutoGrow (System.Random rnd) {
+
+    bool had_growth = true;
+    while (had_growth) {
+      had_growth = Grow(rnd);
+    }
   }
 }
